@@ -3,139 +3,134 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Flappy Pasta Edition</title>
+    <title>Pasta Relax Game</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #70c5ce; font-family: 'Arial', sans-serif; }
-        canvas { display: block; margin: auto; background: #70c5ce; border: 2px solid #000; }
-        #instructions {
-            position: absolute; top: 10px; width: 100%; text-align: center;
-            color: white; font-size: 20px; text-shadow: 2px 2px #000;
+        body {
+            margin: 0;
+            background: #282c34;
+            color: white;
+            font-family: sans-serif;
+            overflow: hidden; /* Niente barre di scorrimento */
+            touch-action: none; /* Ottimo per il cellulare */
+        }
+
+        #game-area {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+            background: linear-gradient(to bottom, #1e3c72, #2a5298);
+        }
+
+        #player {
+            position: absolute;
+            bottom: 20px;
+            width: 180px; /* BELLO GRANDE */
+            height: 180px;
+            object-fit: cover;
+            border: 5px solid white;
+            border-radius: 20px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+            transform: translateX(-50%); /* Centra l'immagine rispetto al mouse */
+            pointer-events: none; /* Non intralcia il mouse */
+        }
+
+        .item {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            background: #ffcc00;
+            border-radius: 50%;
+            box-shadow: 0 0 15px #ffcc00;
+        }
+
+        #score-ui {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            font-size: 32px;
+            font-weight: bold;
         }
     </style>
 </head>
 <body>
 
-    <div id="instructions">Premi **SPAZIO** o **TOCCA** per volare!</div>
-    <canvas id="gameCanvas"></canvas>
+    <div id="game-area">
+        <div id="score-ui">Punti: <span id="score">0</span></div>
+        <img id="player" src="WhatsApp Image 2026-02-07 at 16.59.47.jpeg" alt="Tu">
+    </div>
 
     <script>
-        const canvas = document.getElementById("gameCanvas");
-        const ctx = canvas.getContext("2d");
-
-        // Adatta il canvas allo schermo
-        canvas.width = 400;
-        canvas.height = 600;
-
-        // Caricamento immagine
-        const playerImg = new Image();
-        playerImg.src = "WhatsApp Image 2026-02-07 at 16.59.47.jpeg";
-
-        // Variabili di gioco
-        let bird = { x: 50, y: 150, w: 50, h: 50, gravity: 0.6, lift: -10, velocity: 0 };
-        let pipes = [];
-        let frame = 0;
+        const player = document.getElementById('player');
+        const gameArea = document.getElementById('game-area');
+        const scoreElement = document.getElementById('score');
+        
         let score = 0;
-        let gameOver = false;
+        let playerX = window.innerWidth / 2;
 
-        function Pipe() {
-            this.top = Math.random() * (canvas.height / 2);
-            this.bottom = Math.random() * (canvas.height / 2);
-            this.x = canvas.width;
-            this.w = 50;
-            this.speed = 3;
-
-            this.show = function() {
-                ctx.fillStyle = "#2ecc71";
-                ctx.fillRect(this.x, 0, this.w, this.top);
-                ctx.fillRect(this.x, canvas.height - this.bottom, this.w, this.bottom);
-            };
-
-            this.update = function() {
-                this.x -= this.speed;
-            };
-        }
-
-        function reset() {
-            bird.y = 150;
-            bird.velocity = 0;
-            pipes = [];
-            score = 0;
-            frame = 0;
-            gameOver = false;
-            loop();
-        }
-
-        function draw() {
-            // Sfondo
-            ctx.fillStyle = "#70c5ce";
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            // Giocatore (la tua immagine)
-            ctx.drawImage(playerImg, bird.x, bird.y, bird.w, bird.h);
-
-            // Tubi
-            for (let i = pipes.length - 1; i >= 0; i--) {
-                pipes[i].show();
-                pipes[i].update();
-
-                // Collisione
-                if (bird.x < pipes[i].x + pipes[i].w &&
-                    bird.x + bird.w > pipes[i].x &&
-                    (bird.y < pipes[i].top || bird.y + bird.h > canvas.height - pipes[i].bottom)) {
-                    gameOver = true;
-                }
-
-                if (pipes[i].x < -pipes[i].w) {
-                    pipes.splice(i, 1);
-                    score++;
-                }
-            }
-
-            // Fisica gravità
-            bird.velocity += bird.gravity;
-            bird.y += bird.velocity;
-
-            if (bird.y > canvas.height || bird.y < 0) gameOver = true;
-
-            // Testo punteggio
-            ctx.fillStyle = "white";
-            ctx.font = "30px Arial";
-            ctx.fillText("Score: " + score, 10, 50);
-
-            if (gameOver) {
-                ctx.fillStyle = "rgba(0,0,0,0.5)";
-                ctx.fillRect(0,0, canvas.width, canvas.height);
-                ctx.fillStyle = "white";
-                ctx.textAlign = "center";
-                ctx.fillText("HAI PERSO!", canvas.width/2, canvas.height/2);
-                ctx.font = "20px Arial";
-                ctx.fillText("Premi Spazio per rifare", canvas.width/2, canvas.height/2 + 40);
-                return;
-            }
-
-            if (frame % 90 === 0) pipes.push(new Pipe());
-            frame++;
-            requestAnimationFrame(loop);
-        }
-
-        function loop() {
-            if (!gameOver) draw();
-        }
-
-        // Controlli
-        window.addEventListener("keydown", (e) => {
-            if (e.code === "Space") {
-                if (gameOver) reset();
-                else bird.velocity = bird.lift;
-            }
+        // Muovi il giocatore con il mouse o il tocco
+        window.addEventListener('mousemove', (e) => {
+            playerX = e.clientX;
+            updatePlayerPos();
         });
 
-        canvas.addEventListener("touchstart", () => {
-            if (gameOver) reset();
-            else bird.velocity = bird.lift;
+        window.addEventListener('touchmove', (e) => {
+            playerX = e.touches[0].clientX;
+            updatePlayerPos();
         });
 
-        playerImg.onload = () => loop();
+        function updatePlayerPos() {
+            // Impedisce all'immagine di uscire dai bordi
+            if (playerX < 90) playerX = 90;
+            if (playerX > window.innerWidth - 90) playerX = window.innerWidth - 90;
+            player.style.left = playerX + 'px';
+        }
+
+        function createItem() {
+            const item = document.createElement('div');
+            item.classList.add('item');
+            
+            let itemX = Math.random() * (window.innerWidth - 40);
+            let itemY = -50;
+            let speed = 2 + Math.random() * 3; // Velocità tranquilla
+
+            item.style.left = itemX + 'px';
+            gameArea.appendChild(item);
+
+            function fall() {
+                itemY += speed;
+                item.style.top = itemY + 'px';
+
+                // Controlla se l'immagine "mangia" la pallina
+                const playerRect = player.getBoundingClientRect();
+                const itemRect = item.getBoundingClientRect();
+
+                if (itemRect.bottom > playerRect.top &&
+                    itemRect.right > playerRect.left &&
+                    itemRect.left < playerRect.right) {
+                    
+                    score += 10;
+                    scoreElement.innerText = score;
+                    item.remove();
+                    return; // Esce dal ciclo
+                }
+
+                // Se cade fuori, rimuovila
+                if (itemY > window.innerHeight) {
+                    item.remove();
+                    return;
+                }
+
+                requestAnimationFrame(fall);
+            }
+
+            requestAnimationFrame(fall);
+        }
+
+        // Crea una pallina ogni secondo
+        setInterval(createItem, 1000);
+
+        // Posizione iniziale
+        updatePlayerPos();
     </script>
 </body>
 </html>

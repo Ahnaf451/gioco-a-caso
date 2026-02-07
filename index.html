@@ -3,99 +3,181 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Acchiappa la Faccia!</title>
+    <title>Acchiappa Pasta - Official Game</title>
     <style>
+        :root {
+            --primary: #f1c40f;
+            --bg: #1a1a2e;
+        }
+
         body {
             margin: 0;
             padding: 0;
             overflow: hidden;
-            font-family: 'Arial', sans-serif;
-            background-color: #2c3e50;
+            font-family: 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg);
             color: white;
-            text-align: center;
+            user-select: none;
         }
 
-        #game-container {
-            width: 100vw;
-            height: 100vh;
-            position: relative;
-        }
-
-        #target {
-            width: 120px; /* Regola la grandezza della foto */
-            height: auto;
-            position: absolute;
-            cursor: pointer;
-            border-radius: 15px;
-            box-shadow: 0 0 15px rgba(0,0,0,0.5);
-            transition: transform 0.1s;
-        }
-
-        #target:active {
-            transform: scale(0.8);
-        }
-
-        #ui {
+        /* Interfaccia Utente */
+        #ui-layer {
             position: absolute;
             top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 10;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            z-index: 100;
             pointer-events: none;
         }
 
-        h1 { margin: 0; font-size: 24px; }
-        p { font-size: 20px; color: #f1c40f; }
+        .stat {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(5px);
+            padding: 10px 25px;
+            border-radius: 50px;
+            border: 2px solid var(--primary);
+            font-size: 1.5rem;
+            font-weight: bold;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+
+        /* Il Bersaglio (La tua foto) */
+        #target {
+            width: 110px;
+            height: 110px;
+            position: absolute;
+            cursor: pointer;
+            border-radius: 50%; /* La rende tonda come un avatar */
+            border: 4px solid var(--primary);
+            object-fit: cover;
+            box-shadow: 0 0 20px var(--primary);
+            display: none; /* Appare all'inizio */
+            z-index: 50;
+        }
+
+        /* Schermata Iniziale e Finale */
+        #overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.85);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 200;
+        }
+
+        button {
+            padding: 15px 40px;
+            font-size: 1.5rem;
+            background: var(--primary);
+            border: none;
+            border-radius: 10px;
+            color: #000;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        button:hover {
+            transform: scale(1.1);
+        }
+
+        .hidden { display: none !important; }
     </style>
 </head>
 <body>
 
-    <div id="ui">
-        <h1>Acchiappa la Faccia!</h1>
-        <p>Punteggio: <span id="score">0</span></p>
+    <div id="ui-layer">
+        <div class="stat">Punti: <span id="score">0</span></div>
+        <div class="stat">Tempo: <span id="timer">30</span>s</div>
     </div>
 
-    <div id="game-container">
-        <img src="foto.jpg" id="target" alt="Bersaglio">
+    <div id="overlay">
+        <h1 id="msg">Pronto, Pasta?</h1>
+        <button id="start-btn">GIOCA ORA</button>
     </div>
+
+    <img src="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCADIAXADASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDBAIEAwUFBAQAAAF9AQIDAAQRBIRBhUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZnaGlqc3R1dnd4eXqGhciMkic3R1dnd4eXqCg4SFhoeiiYqSkjLp68mP8h0fEQACAgADBAcFBAQABfL/2gAMAwEAAhEDEQA/APf6KKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigD/2Q==" id="target" alt="Pasta">
 
     <script>
         const target = document.getElementById('target');
-        const scoreDisplay = document.getElementById('score');
-        let score = 0;
-        let speed = 1500; // Millisecondi iniziali
+        const scoreEl = document.getElementById('score');
+        const timerEl = document.getElementById('timer');
+        const overlay = document.getElementById('overlay');
+        const startBtn = document.getElementById('start-btn');
+        const msg = document.getElementById('msg');
 
-        function moveTarget() {
-            const container = document.getElementById('game-container');
-            
-            // Calcola posizioni casuali
-            const maxX = container.clientWidth - target.clientWidth;
-            const maxY = container.clientHeight - target.clientHeight;
-            
-            const randomX = Math.floor(Math.random() * maxX);
-            const randomY = Math.floor(Math.random() * maxY);
-            
-            target.style.left = randomX + 'px';
-            target.style.top = randomY + 'px';
+        let score = 0;
+        let timeLeft = 30;
+        let gameActive = false;
+        let timerInterval;
+        let moveInterval;
+
+        function move() {
+            if(!gameActive) return;
+            const x = Math.random() * (window.innerWidth - 120);
+            const y = Math.random() * (window.innerHeight - 150) + 100;
+            target.style.left = `${x}px`;
+            target.style.top = `${y}px`;
         }
 
-        target.addEventListener('click', () => {
+        function startGame() {
+            score = 0;
+            timeLeft = 30;
+            gameActive = true;
+            scoreEl.innerText = score;
+            timerEl.innerText = timeLeft;
+            
+            overlay.classList.add('hidden');
+            target.style.display = 'block';
+            
+            move();
+            
+            // Timer del gioco
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                timerEl.innerText = timeLeft;
+                if(timeLeft <= 0) endGame();
+            }, 1000);
+
+            // Movimento automatico ogni secondo (se non lo becchi)
+            moveInterval = setInterval(move, 1000);
+        }
+
+        function endGame() {
+            gameActive = false;
+            clearInterval(timerInterval);
+            clearInterval(moveInterval);
+            target.style.display = 'none';
+            overlay.classList.remove('hidden');
+            msg.innerText = `Tempo scaduto! Score: ${score}`;
+            startBtn.innerText = "RIPROVA";
+        }
+
+        target.addEventListener('mousedown', () => {
+            if(!gameActive) return;
             score++;
-            scoreDisplay.innerText = score;
+            scoreEl.innerText = score;
             
-            // Aumenta la difficoltà ogni 5 punti
-            if (score % 5 === 0 && speed > 400) {
-                speed -= 100;
-                clearInterval(gameInterval);
-                gameInterval = setInterval(moveTarget, speed);
-            }
+            // Effetto rimbalzo quando colpito
+            target.style.transform = "scale(1.3)";
+            setTimeout(() => target.style.transform = "scale(1)", 100);
             
-            moveTarget();
+            move();
+            
+            // Resetta l'intervallo di movimento automatico per non farlo saltare subito dopo il click
+            clearInterval(moveInterval);
+            moveInterval = setInterval(move, Math.max(500, 1000 - (score * 20))); 
         });
 
-        // Muovi la foto inizialmente e imposta l'intervallo
-        moveTarget();
-        let gameInterval = setInterval(moveTarget, speed);
+        startBtn.addEventListener('click', startGame);
     </script>
 </body>
 </html>

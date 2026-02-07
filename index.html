@@ -3,134 +3,165 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pasta Relax Game</title>
+    <title>Flappy Pasta XL</title>
     <style>
-        body {
-            margin: 0;
-            background: #282c34;
-            color: white;
-            font-family: sans-serif;
-            overflow: hidden; /* Niente barre di scorrimento */
-            touch-action: none; /* Ottimo per il cellulare */
-        }
-
-        #game-area {
-            width: 100vw;
+        body { 
+            margin: 0; 
+            overflow: hidden; 
+            background: #4ec0ca; 
+            font-family: 'Segoe UI', sans-serif; 
+            display: flex;
+            justify-content: center;
+            align-items: center;
             height: 100vh;
-            position: relative;
-            background: linear-gradient(to bottom, #1e3c72, #2a5298);
         }
-
-        #player {
-            position: absolute;
-            bottom: 20px;
-            width: 180px; /* BELLO GRANDE */
-            height: 180px;
-            object-fit: cover;
-            border: 5px solid white;
-            border-radius: 20px;
-            box-shadow: 0 10px 20px rgba(0,0,0,0.5);
-            transform: translateX(-50%); /* Centra l'immagine rispetto al mouse */
-            pointer-events: none; /* Non intralcia il mouse */
+        canvas { 
+            background: #70c5ce; 
+            border: 5px solid #fff;
+            border-radius: 15px;
+            box-shadow: 0 0 30px rgba(0,0,0,0.3);
+            max-width: 95vw;
+            max-height: 90vh;
         }
-
-        .item {
-            position: absolute;
-            width: 40px;
-            height: 40px;
-            background: #ffcc00;
-            border-radius: 50%;
-            box-shadow: 0 0 15px #ffcc00;
-        }
-
-        #score-ui {
+        #ui {
             position: absolute;
             top: 20px;
-            left: 20px;
+            color: white;
             font-size: 32px;
             font-weight: bold;
+            text-shadow: 3px 3px 0px #000;
+            pointer-events: none;
         }
     </style>
 </head>
 <body>
 
-    <div id="game-area">
-        <div id="score-ui">Punti: <span id="score">0</span></div>
-        <img id="player" src="WhatsApp Image 2026-02-07 at 16.59.47.jpeg" alt="Tu">
-    </div>
+    <div id="ui">Punti: <span id="score">0</span></div>
+    <canvas id="gameCanvas"></canvas>
 
     <script>
-        const player = document.getElementById('player');
-        const gameArea = document.getElementById('game-area');
-        const scoreElement = document.getElementById('score');
-        
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+        const scoreElement = document.getElementById("score");
+
+        // Dimensioni GRANDI
+        canvas.width = 600; 
+        canvas.height = 800;
+
+        const playerImg = new Image();
+        playerImg.src = "WhatsApp Image 2026-02-07 at 16.59.47.jpeg";
+
+        // Parametri Semplificati (Modalità Relax)
+        let bird = { 
+            x: 80, 
+            y: 300, 
+            w: 100, // Immagine gigante
+            h: 100, 
+            gravity: 0.3, // Gravità leggerissima
+            lift: -7,     // Salto dolce
+            velocity: 0 
+        };
+
+        let pipes = [];
         let score = 0;
-        let playerX = window.innerWidth / 2;
+        let frame = 0;
+        let isGameOver = false;
+        const GAP = 300; // SPAZIO ENORME tra i tubi (difficilissimo sbagliare!)
 
-        // Muovi il giocatore con il mouse o il tocco
-        window.addEventListener('mousemove', (e) => {
-            playerX = e.clientX;
-            updatePlayerPos();
-        });
-
-        window.addEventListener('touchmove', (e) => {
-            playerX = e.touches[0].clientX;
-            updatePlayerPos();
-        });
-
-        function updatePlayerPos() {
-            // Impedisce all'immagine di uscire dai bordi
-            if (playerX < 90) playerX = 90;
-            if (playerX > window.innerWidth - 90) playerX = window.innerWidth - 90;
-            player.style.left = playerX + 'px';
+        function createPipe() {
+            let topHeight = Math.random() * (canvas.height / 2) + 50;
+            pipes.push({
+                x: canvas.width,
+                top: topHeight,
+                w: 80,
+                passed: false
+            });
         }
 
-        function createItem() {
-            const item = document.createElement('div');
-            item.classList.add('item');
-            
-            let itemX = Math.random() * (window.innerWidth - 40);
-            let itemY = -50;
-            let speed = 2 + Math.random() * 3; // Velocità tranquilla
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            item.style.left = itemX + 'px';
-            gameArea.appendChild(item);
+            // Disegna Giocatore
+            ctx.drawImage(playerImg, bird.x, bird.y, bird.w, bird.h);
 
-            function fall() {
-                itemY += speed;
-                item.style.top = itemY + 'px';
+            // Fisica
+            bird.velocity += bird.gravity;
+            bird.y += bird.velocity;
 
-                // Controlla se l'immagine "mangia" la pallina
-                const playerRect = player.getBoundingClientRect();
-                const itemRect = item.getBoundingClientRect();
+            // Disegna e muovi Tubi
+            for (let i = pipes.length - 1; i >= 0; i--) {
+                let p = pipes[i];
+                p.x -= 2.5; // Velocità lenta
 
-                if (itemRect.bottom > playerRect.top &&
-                    itemRect.right > playerRect.left &&
-                    itemRect.left < playerRect.right) {
-                    
-                    score += 10;
+                // Tubo superiore
+                ctx.fillStyle = "#2ecc71";
+                ctx.fillRect(p.x, 0, p.w, p.top);
+                // Tubo inferiore
+                ctx.fillRect(p.x, p.top + GAP, p.w, canvas.height);
+
+                // Collisione (molto permissiva)
+                if (bird.x + 10 < p.x + p.w &&
+                    bird.x + bird.w - 10 > p.x &&
+                    (bird.y + 10 < p.top || bird.y + bird.h - 10 > p.top + GAP)) {
+                    isGameOver = true;
+                }
+
+                // Punto guadagnato
+                if (!p.passed && p.x + p.w < bird.x) {
+                    score++;
                     scoreElement.innerText = score;
-                    item.remove();
-                    return; // Esce dal ciclo
+                    p.passed = true;
                 }
 
-                // Se cade fuori, rimuovila
-                if (itemY > window.innerHeight) {
-                    item.remove();
-                    return;
-                }
-
-                requestAnimationFrame(fall);
+                if (p.x + p.w < 0) pipes.splice(i, 1);
             }
 
-            requestAnimationFrame(fall);
+            // Limiti schermo
+            if (bird.y > canvas.height - bird.h) {
+                bird.y = canvas.height - bird.h;
+                bird.velocity = 0;
+            }
+            if (bird.y < 0) bird.y = 0;
+
+            if (isGameOver) {
+                ctx.fillStyle = "rgba(0,0,0,0.6)";
+                ctx.fillRect(0,0, canvas.width, canvas.height);
+                ctx.fillStyle = "white";
+                ctx.textAlign = "center";
+                ctx.font = "50px Arial";
+                ctx.fillText("OPS! 🤌", canvas.width/2, canvas.height/2);
+                ctx.font = "25px Arial";
+                ctx.fillText("Clicca o Spazio per riprovare", canvas.width/2, canvas.height/2 + 60);
+                return;
+            }
+
+            if (frame % 120 === 0) createPipe();
+            frame++;
+            requestAnimationFrame(draw);
         }
 
-        // Crea una pallina ogni secondo
-        setInterval(createItem, 1000);
+        function reset() {
+            bird.y = 300;
+            bird.velocity = 0;
+            pipes = [];
+            score = 0;
+            scoreElement.innerText = score;
+            isGameOver = false;
+            frame = 0;
+            draw();
+        }
 
-        // Posizione iniziale
-        updatePlayerPos();
+        // Input semplici
+        const handleAction = () => {
+            if (isGameOver) reset();
+            else bird.velocity = bird.lift;
+        };
+
+        window.addEventListener("keydown", (e) => { if(e.code === "Space") handleAction(); });
+        canvas.addEventListener("mousedown", handleAction);
+        canvas.addEventListener("touchstart", (e) => { e.preventDefault(); handleAction(); });
+
+        playerImg.onload = draw;
     </script>
 </body>
 </html>

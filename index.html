@@ -3,141 +3,95 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Acchiappa Pasta - Versione Funzionante</title>
+    <title>Il Gioco di Pasta</title>
     <style>
         body {
             margin: 0;
-            padding: 0;
             overflow: hidden;
-            font-family: 'Arial Black', sans-serif;
-            background: #121212;
-            color: #fff;
+            background-color: #121212;
+            font-family: Arial, sans-serif;
+            color: white;
             user-select: none;
         }
-
-        #ui {
+        #game-container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+        #player {
+            width: 150px; /* Regola la grandezza dell'immagine */
+            position: absolute;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+        #player:active {
+            transform: scale(0.9);
+        }
+        #score-board {
             position: absolute;
             top: 20px;
-            width: 100%;
-            text-align: center;
-            z-index: 100;
-        }
-
-        .box {
-            display: inline-block;
-            background: rgba(255, 255, 255, 0.1);
-            padding: 10px 30px;
-            border-radius: 15px;
-            border: 3px solid #00ff00;
+            left: 20px;
             font-size: 24px;
-            margin: 0 10px;
-        }
-
-        /* IL BERSAGLIO */
-        #target {
-            width: 150px; /* Più grande così la vedi bene */
-            height: 150px;
-            position: absolute;
-            cursor: pointer;
-            border-radius: 50%;
-            border: 5px solid #00ff00;
-            object-fit: cover;
-            display: none;
-            box-shadow: 0 0 20px #00ff00;
-        }
-
-        #overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.9);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 200;
-        }
-
-        button {
-            padding: 20px 50px;
-            font-size: 30px;
-            background: #00ff00;
-            border: none;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 10px 20px;
             border-radius: 10px;
-            font-weight: bold;
-            cursor: pointer;
+            pointer-events: none;
         }
-
-        .hidden { display: none; }
     </style>
 </head>
 <body>
 
-    <div id="ui">
-        <div class="box">PUNTI: <span id="score">0</span></div>
-        <div class="box">TEMPO: <span id="timer">30</span></div>
-    </div>
+    <div id="score-board">Punti: <span id="score">0</span></div>
 
-    <div id="overlay">
-        <h1 id="title">CLICCA LA FACCIA!</h1>
-        <button onclick="startGame()">GIOCA</button>
+    <div id="game-container">
+        <img id="player" src="WhatsApp Image 2026-02-07 at 16.59.47.jpeg" alt="Bersaglio">
     </div>
-
-    <img src="https://m.media-amazon.com/images/I/41OshSExO3L.jpg" id="target" alt="Pasta">
 
     <script>
-        const target = document.getElementById('target');
-        const scoreEl = document.getElementById('score');
-        const timerEl = document.getElementById('timer');
-        const overlay = document.getElementById('overlay');
-        const title = document.getElementById('title');
-
+        const player = document.getElementById('player');
+        const scoreElement = document.getElementById('score');
         let score = 0;
-        let timeLeft = 30;
-        let gameActive = false;
 
-        function move() {
-            const x = Math.random() * (window.innerWidth - 150);
-            const y = Math.random() * (window.innerHeight - 200) + 100;
-            target.style.left = x + 'px';
-            target.style.top = y + 'px';
+        let posX = Math.random() * (window.innerWidth - 150);
+        let posY = Math.random() * (window.innerHeight - 150);
+        let speedX = 3;
+        let speedY = 3;
+
+        function update() {
+            posX += speedX;
+            posY += speedY;
+
+            // Rimbalzo bordi orizzontali
+            if (posX + player.clientWidth >= window.innerWidth || posX <= 0) {
+                speedX *= -1;
+            }
+
+            // Rimbalzo bordi verticali
+            if (posY + player.clientHeight >= window.innerHeight || posY <= 0) {
+                speedY *= -1;
+            }
+
+            player.style.left = posX + 'px';
+            player.style.top = posY + 'px';
+
+            requestAnimationFrame(update);
         }
 
-        function startGame() {
-            score = 0;
-            timeLeft = 30;
-            gameActive = true;
-            scoreEl.innerText = score;
-            timerEl.innerText = timeLeft;
-            overlay.classList.add('hidden');
-            target.style.display = 'block';
-            move();
-
-            const timer = setInterval(() => {
-                timeLeft--;
-                timerEl.innerText = timeLeft;
-                if(timeLeft <= 0) {
-                    clearInterval(timer);
-                    endGame();
-                }
-            }, 1000);
-        }
-
-        function endGame() {
-            gameActive = false;
-            target.style.display = 'none';
-            overlay.classList.remove('hidden');
-            title.innerText = "FINITO! PUNTI: " + score;
-        }
-
-        target.addEventListener('mousedown', () => {
-            if(!gameActive) return;
+        player.addEventListener('click', () => {
             score++;
-            scoreEl.innerText = score;
-            move();
+            scoreElement.textContent = score;
+            
+            // Aumenta leggermente la velocità ogni volta che clicchi
+            speedX *= 1.05;
+            speedY *= 1.05;
+            
+            // Feedback visivo: teletrasporto casuale al click
+            posX = Math.random() * (window.innerWidth - 150);
+            posY = Math.random() * (window.innerHeight - 150);
         });
+
+        // Avvia il movimento
+        update();
     </script>
 </body>
 </html>

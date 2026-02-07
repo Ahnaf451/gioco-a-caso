@@ -1,345 +1,101 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-<meta charset="UTF-8" />
-<title>Aetherium Chronicles - Base Completa</title>
-<style>
-  body { margin: 0; overflow: hidden; background: #000; font-family: 'Segoe UI', sans-serif; }
-  canvas { display: block; width: 100vw; height: 100vh; }
-  #hud {
-    position: absolute; top: 20px; left: 20px; color: white; pointer-events: none;
-    user-select: none;
-  }
-  .bar-container {
-    width: 200px; height: 15px; background: rgba(0,0,0,0.5); border: 2px solid #fff; margin-bottom: 5px;
-  }
-  #hp-bar { width: 100%; height: 100%; background: #ff3e3e; transition: width 0.3s; }
-  #stamina-bar { width: 100%; height: 100%; background: #3eff71; transition: width 0.3s; }
-  #stats { margin-top: 10px; font-size: 14px; }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acchiappa la Faccia!</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            font-family: 'Arial', sans-serif;
+            background-color: #2c3e50;
+            color: white;
+            text-align: center;
+        }
 
-  #inventory-ui {
-    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-    background: rgba(20, 20, 25, 0.95); border: 3px solid #666; padding: 20px;
-    display: none; 
-    grid-template-columns: repeat(5, 50px);
-    gap: 10px;
-    pointer-events: auto;
-    user-select: none;
-    display: grid;
-  }
-  .slot {
-    width: 50px; height: 50px; border: 1px solid #aaa; background: rgba(255,255,255,0.1);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 12px; color: #ccc;
-  }
+        #game-container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
 
-  #crosshair { 
-    position: absolute; top: 50%; left: 50%; color: white; 
-    transform: translate(-50%, -50%); font-size: 20px; 
-    user-select: none;
-  }
+        #target {
+            width: 120px; /* Regola la grandezza della foto */
+            height: auto;
+            position: absolute;
+            cursor: pointer;
+            border-radius: 15px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.5);
+            transition: transform 0.1s;
+        }
 
-  #pause-menu {
-    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-    background: rgba(0,0,0,0.85); color: white; font-size: 24px; 
-    padding: 40px 60px; border-radius: 10px; display: none;
-    text-align: center;
-  }
-  #pause-menu button {
-    margin-top: 20px; font-size: 18px; padding: 10px 20px; cursor: pointer;
-  }
-</style>
+        #target:active {
+            transform: scale(0.8);
+        }
+
+        #ui {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        h1 { margin: 0; font-size: 24px; }
+        p { font-size: 20px; color: #f1c40f; }
+    </style>
 </head>
 <body>
 
-<div id="hud">
-  <div>HP</div>
-  <div class="bar-container"><div id="hp-bar"></div></div>
-  <div>STAMINA</div>
-  <div class="bar-container"><div id="stamina-bar"></div></div>
-  <div id="stats">XP: 0 | Level: 1</div>
-</div>
+    <div id="ui">
+        <h1>Acchiappa la Faccia!</h1>
+        <p>Punteggio: <span id="score">0</span></p>
+    </div>
 
-<div id="crosshair">+</div>
+    <div id="game-container">
+        <img src="foto.jpg" id="target" alt="Bersaglio">
+    </div>
 
-<div id="inventory-ui">
-  <!-- 5x5 slots vuoti -->
-  <div class="slot" title="Slot 1"></div><div class="slot" title="Slot 2"></div><div class="slot" title="Slot 3"></div><div class="slot" title="Slot 4"></div><div class="slot" title="Slot 5"></div>
-  <div class="slot" title="Slot 6"></div><div class="slot" title="Slot 7"></div><div class="slot" title="Slot 8"></div><div class="slot" title="Slot 9"></div><div class="slot" title="Slot 10"></div>
-  <div class="slot" title="Slot 11"></div><div class="slot" title="Slot 12"></div><div class="slot" title="Slot 13"></div><div class="slot" title="Slot 14"></div><div class="slot" title="Slot 15"></div>
-  <div class="slot" title="Slot 16"></div><div class="slot" title="Slot 17"></div><div class="slot" title="Slot 18"></div><div class="slot" title="Slot 19"></div><div class="slot" title="Slot 20"></div>
-  <div class="slot" title="Slot 21"></div><div class="slot" title="Slot 22"></div><div class="slot" title="Slot 23"></div><div class="slot" title="Slot 24"></div><div class="slot" title="Slot 25"></div>
-</div>
+    <script>
+        const target = document.getElementById('target');
+        const scoreDisplay = document.getElementById('score');
+        let score = 0;
+        let speed = 1500; // Millisecondi iniziali
 
-<div id="pause-menu">
-  <div>Gioco in pausa</div>
-  <button id="resume-btn">Riprendi</button>
-  <button id="save-btn">Salva partita</button>
-</div>
+        function moveTarget() {
+            const container = document.getElementById('game-container');
+            
+            // Calcola posizioni casuali
+            const maxX = container.clientWidth - target.clientWidth;
+            const maxY = container.clientHeight - target.clientHeight;
+            
+            const randomX = Math.floor(Math.random() * maxX);
+            const randomY = Math.floor(Math.random() * maxY);
+            
+            target.style.left = randomX + 'px';
+            target.style.top = randomY + 'px';
+        }
 
-<canvas id="gameCanvas"></canvas>
+        target.addEventListener('click', () => {
+            score++;
+            scoreDisplay.innerText = score;
+            
+            // Aumenta la difficoltà ogni 5 punti
+            if (score % 5 === 0 && speed > 400) {
+                speed -= 100;
+                clearInterval(gameInterval);
+                gameInterval = setInterval(moveTarget, speed);
+            }
+            
+            moveTarget();
+        });
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/gl-matrix/2.8.1/gl-matrix-min.js"></script>
-<script>
-"use strict";
-
-const canvas = document.getElementById('gameCanvas');
-const gl = canvas.getContext('webgl');
-if (!gl) alert("WebGL non supportato");
-
-// --- SHADERS ---
-const vsSource = `
-  attribute vec4 aVertexPosition;
-  attribute vec3 aNormal;
-
-  uniform mat4 uNormalMatrix;
-  uniform mat4 uModelViewMatrix;
-  uniform mat4 uProjectionMatrix;
-
-  varying highp vec3 vLighting;
-
-  void main(void) {
-    gl_Position = uProjectionMatrix * uModelViewMatrix * aVertexPosition;
-    highp vec3 ambientLight = vec3(0.3, 0.3, 0.3);
-    highp vec3 directionalLightColor = vec3(1, 1, 0.9);
-    highp vec3 directionalVector = normalize(vec3(0.85, 0.8, 0.75));
-
-    highp vec4 transformedNormal = uNormalMatrix * vec4(aNormal, 0.0); // vettore, w=0
-    highp float directional = max(dot(transformedNormal.xyz, directionalVector), 0.0);
-    vLighting = ambientLight + (directionalLightColor * directional);
-  }
-`;
-
-const fsSource = `
-  varying highp vec3 vLighting;
-
-  void main(void) {
-    gl_FragColor = vec4(vec3(0.5, 0.7, 1.0) * vLighting, 1.0);
-  }
-`;
-
-// --- GAME STATE ---
-const Game = {
-  player: {
-    pos: [0, 1, 5],
-    vel: [0, 0, 0],
-    onGround: false,
-    hp: 100,
-    stamina: 100,
-    speed: 0.1,
-    isRunning: false,
-    jumpSpeed: 0.2,
-  },
-  input: {},
-  camera: { distance: 10, pitch: 0.5, yaw: 0 },
-  objects: [],
-  paused: false,
-  xp: 0,
-  level: 1,
-};
-
-// --- INIT ---
-function init() {
-  resizeCanvas();
-
-  const shaderProgram = initShaderProgram(gl, vsSource, fsSource);
-  const programInfo = {
-    program: shaderProgram,
-    attribLocations: {
-      vertexPosition: gl.getAttribLocation(shaderProgram, 'aVertexPosition'),
-      normal: gl.getAttribLocation(shaderProgram, 'aNormal'),
-    },
-    uniformLocations: {
-      projectionMatrix: gl.getUniformLocation(shaderProgram, 'uProjectionMatrix'),
-      modelViewMatrix: gl.getUniformLocation(shaderProgram, 'uModelViewMatrix'),
-      normalMatrix: gl.getUniformLocation(shaderProgram, 'uNormalMatrix'),
-    },
-  };
-
-  const buffers = initBuffers(gl);
-
-  // Eventi input
-  window.addEventListener('keydown', (e) => {
-    Game.input[e.code] = true;
-
-    // Toggle inventario con I
-    if (e.code === 'KeyI') toggleInventory();
-
-    // Toggle pausa con P
-    if (e.code === 'KeyP') togglePause();
-  });
-
-  window.addEventListener('keyup', (e) => { Game.input[e.code] = false; });
-
-  window.addEventListener('mousemove', (e) => {
-    if (document.pointerLockElement === canvas && !Game.paused) {
-      Game.camera.yaw -= e.movementX * 0.005;
-      Game.camera.pitch -= e.movementY * 0.005;
-      if (Game.camera.pitch < 0) Game.camera.pitch = 0;
-      if (Game.camera.pitch > Math.PI / 2) Game.camera.pitch = Math.PI / 2;
-    }
-  });
-
-  window.addEventListener('wheel', (e) => {
-    Game.camera.distance += e.deltaY * 0.01;
-    if (Game.camera.distance < 2) Game.camera.distance = 2;
-    if (Game.camera.distance > 30) Game.camera.distance = 30;
-  });
-
-  canvas.onclick = () => {
-    if (!Game.paused) canvas.requestPointerLock();
-  };
-
-  // Pulsanti menu pausa
-  document.getElementById('resume-btn').onclick = () => togglePause(false);
-  document.getElementById('save-btn').onclick = () => saveGame();
-
-  // Carica partita se esiste
-  loadGame();
-
-  function gameLoop(now) {
-    if (!Game.paused) update();
-    drawScene(gl, programInfo, buffers);
-    requestAnimationFrame(gameLoop);
-  }
-  requestAnimationFrame(gameLoop);
-}
-
-function resizeCanvas() {
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
-  gl.viewport(0, 0, canvas.width, canvas.height);
-}
-
-// --- LOGICA MOVIMENTO E FISICA ---
-function update() {
-  const p = Game.player;
-
-  // GESTIONE STAMINA E CORSA
-  const isRunKey = Game.input['ShiftLeft'] || Game.input['ShiftRight'];
-  if (isRunKey && p.stamina > 10) {
-    p.isRunning = true;
-    p.stamina -= 0.6;
-  } else {
-    p.isRunning = false;
-    p.stamina += 0.3;
-    if (p.stamina > 100) p.stamina = 100;
-  }
-
-  const speed = p.isRunning ? p.speed * 2 : p.speed;
-
-  // MOVIMENTO DIREZIONALE
-  let dx = 0;
-  let dz = 0;
-  if (Game.input['KeyW']) { dz -= 1; }
-  if (Game.input['KeyS']) { dz += 1; }
-  if (Game.input['KeyA']) { dx -= 1; }
-  if (Game.input['KeyD']) { dx += 1; }
-
-  // Normalizza movimento per evitare velocità diagonale > 1
-  const len = Math.hypot(dx, dz);
-  if (len > 0) {
-    dx /= len;
-    dz /= len;
-  }
-
-  // Calcola movimento relativo all'orientamento camera (yaw)
-  const yaw = Game.camera.yaw;
-  p.pos[0] += (dx * Math.cos(yaw) - dz * Math.sin(yaw)) * speed;
-  p.pos[2] += (dz * Math.cos(yaw) + dx * Math.sin(yaw)) * speed;
-
-  // GESTIONE SALTO E GRAVITA'
-  if (Game.input['Space'] && p.onGround) {
-    p.vel[1] = p.jumpSpeed;
-    p.onGround = false;
-  }
-
-  // Applica gravità
-  p.vel[1] -= 0.01;
-  p.pos[1] += p.vel[1];
-
-  // Collisione semplice con terreno piano a y=0
-  if (p.pos[1] < 1) {
-    p.pos[1] = 1;
-    p.vel[1] = 0;
-    p.onGround = true;
-  }
-
-  // Aggiorna HUD
-  document.getElementById('hp-bar').style.width = p.hp + '%';
-  document.getElementById('stamina-bar').style.width = p.stamina + '%';
-  document.getElementById('stats').textContent = `XP: ${Game.xp} | Level: ${Game.level}`;
-}
-
-// --- RENDERING ---
-function drawScene(gl, programInfo, buffers) {
-  gl.clearColor(0.1, 0.1, 0.15, 1.0);
-  gl.clearDepth(1.0);
-  gl.enable(gl.DEPTH_TEST);
-  gl.depthFunc(gl.LEQUAL);
-  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-
-  const projectionMatrix = mat4.create();
-  mat4.perspective(projectionMatrix, 45 * Math.PI / 180, gl.canvas.clientWidth / gl.canvas.clientHeight, 0.1, 100.0);
-
-  const modelViewMatrix = mat4.create();
-
-  // Posizione camera orbitale
-  const camX = Game.player.pos[0] + Game.camera.distance * Math.sin(Game.camera.yaw) * Math.cos(Game.camera.pitch);
-  const camY = Game.player.pos[1] + Game.camera.distance * Math.sin(Game.camera.pitch);
-  const camZ = Game.player.pos[2] + Game.camera.distance * Math.cos(Game.camera.yaw) * Math.cos(Game.camera.pitch);
-
-  mat4.lookAt(modelViewMatrix, [camX, camY, camZ], Game.player.pos, [0, 1, 0]);
-
-  // Disegna piano terra (grande piano)
-  drawObject(gl, programInfo, buffers, [0, 0, 0], [50, 0.1, 50], modelViewMatrix, projectionMatrix);
-
-  // Disegna giocatore (cubo)
-  drawObject(gl, programInfo, buffers, Game.player.pos, [0.5, 1, 0.5], modelViewMatrix, projectionMatrix);
-}
-
-function drawObject(gl, programInfo, buffers, pos, scale, viewMat, projMat) {
-  const modelMat = mat4.create();
-  mat4.translate(modelMat, viewMat, pos);
-  mat4.scale(modelMat, modelMat, scale);
-
-  const normalMatrix = mat4.create();
-  mat4.invert(normalMatrix, modelMat);
-  mat4.transpose(normalMatrix, normalMatrix);
-
-  gl.useProgram(programInfo.program);
-  gl.uniformMatrix4fv(programInfo.uniformLocations.projectionMatrix, false, projMat);
-  gl.uniformMatrix4fv(programInfo.uniformLocations.modelViewMatrix, false, modelMat);
-  gl.uniformMatrix4fv(programInfo.uniformLocations.normalMatrix, false, normalMatrix);
-
-  gl.bindBuffer(gl.ARRAY_BUFFER, buffers.position);
-  gl.vertexAttribPointer(programInfo.attribLocations.vertexPosition, 3, gl.FLOAT, false, 0, 0);
-  gl.enableVertexAttribArray(programInfo.attribLocations.vertexPosition);
-
-  gl.bindBuffer(gl.ARRAY_BUFFER, buffers.normal);
-  gl.vertexAttribPointer(programInfo.attribLocations.normal, 3, gl.FLOAT, false, 0, 0);
-  gl.enableVertexAttribArray(programInfo.attribLocations.normal);
-
-  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffers.indices);
-  gl.drawElements(gl.TRIANGLES, 36, gl.UNSIGNED_SHORT, 0);
-}
-
-// --- BUFFER E SHADERS ---
-function initBuffers(gl) {
-  const positions = [
-    // Cubo: 8 vertici x 3 coordinate
-    -1, -1,  1,  1, -1,  1,  1,  1,  1, -1,  1,  1, // fronte
-    -1, -1, -1, -1,  1, -1,  1,  1, -1,  1, -1, -1, // retro
-    -1,  1, -1, -1,  1,  1,  1,  1,  1,  1,  1, -1, // sopra
-    -1, -1, -1,  1, -1, -1,  1, -1,  1, -1, -1,  1, // sotto
-    1, -1, -1,  1,  1, -1,  1,  1,  1,  1, -1,  1, // destra
-    -1, -1, -1, -1, -1,  1, -1,  1,  1, -1,  1, -1, // sinistra
-  ];
-  const normals = [
-    // Normali per ogni faccia
-    0, 0, 1,   0, 0, 1,   0, 0, 1,   0, 0, 1,      // fronte
-    0, 0, -1,  0, 0, -1,  0, 0, -1,  0, 0, -1,     // retro
-    0, 1, 0,   0, 1, 0,   0, 1, 0,   0, 1, 0,      // sopra
-    0, -1, 0,  0, -1, 0,  0, -1, 0,  0, -1, 0,     // sotto
-    1, 0, 0,   1, 0, 0,   1, 0, 0,   1, 0, 0,      // destra
-    -1,
+        // Muovi la foto inizialmente e imposta l'intervallo
+        moveTarget();
+        let gameInterval = setInterval(moveTarget, speed);
+    </script>
+</body>
+</html>

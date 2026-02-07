@@ -3,69 +3,56 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Acchiappa Pasta - Official Game</title>
+    <title>Acchiappa Pasta - Versione Funzionante</title>
     <style>
-        :root {
-            --primary: #f1c40f;
-            --bg: #1a1a2e;
-        }
-
         body {
             margin: 0;
             padding: 0;
             overflow: hidden;
-            font-family: 'Segoe UI', Roboto, sans-serif;
-            background: var(--bg);
-            color: white;
+            font-family: 'Arial Black', sans-serif;
+            background: #121212;
+            color: #fff;
             user-select: none;
         }
 
-        /* Interfaccia Utente */
-        #ui-layer {
+        #ui {
             position: absolute;
             top: 20px;
-            left: 0;
-            right: 0;
-            display: flex;
-            justify-content: center;
-            gap: 20px;
+            width: 100%;
+            text-align: center;
             z-index: 100;
-            pointer-events: none;
         }
 
-        .stat {
+        .box {
+            display: inline-block;
             background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(5px);
-            padding: 10px 25px;
-            border-radius: 50px;
-            border: 2px solid var(--primary);
-            font-size: 1.5rem;
-            font-weight: bold;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            padding: 10px 30px;
+            border-radius: 15px;
+            border: 3px solid #00ff00;
+            font-size: 24px;
+            margin: 0 10px;
         }
 
-        /* Il Bersaglio (La tua foto) */
+        /* IL BERSAGLIO */
         #target {
-            width: 110px;
-            height: 110px;
+            width: 150px; /* Più grande così la vedi bene */
+            height: 150px;
             position: absolute;
             cursor: pointer;
-            border-radius: 50%; /* La rende tonda come un avatar */
-            border: 4px solid var(--primary);
+            border-radius: 50%;
+            border: 5px solid #00ff00;
             object-fit: cover;
-            box-shadow: 0 0 20px var(--primary);
-            display: none; /* Appare all'inizio */
-            z-index: 50;
+            display: none;
+            box-shadow: 0 0 20px #00ff00;
         }
 
-        /* Schermata Iniziale e Finale */
         #overlay {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0,0,0,0.85);
+            background: rgba(0,0,0,0.9);
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -74,58 +61,48 @@
         }
 
         button {
-            padding: 15px 40px;
-            font-size: 1.5rem;
-            background: var(--primary);
+            padding: 20px 50px;
+            font-size: 30px;
+            background: #00ff00;
             border: none;
             border-radius: 10px;
-            color: #000;
             font-weight: bold;
             cursor: pointer;
-            transition: transform 0.2s;
         }
 
-        button:hover {
-            transform: scale(1.1);
-        }
-
-        .hidden { display: none !important; }
+        .hidden { display: none; }
     </style>
 </head>
 <body>
 
-    <div id="ui-layer">
-        <div class="stat">Punti: <span id="score">0</span></div>
-        <div class="stat">Tempo: <span id="timer">30</span>s</div>
+    <div id="ui">
+        <div class="box">PUNTI: <span id="score">0</span></div>
+        <div class="box">TEMPO: <span id="timer">30</span></div>
     </div>
 
     <div id="overlay">
-        <h1 id="msg">Pronto, Pasta?</h1>
-        <button id="start-btn">GIOCA ORA</button>
+        <h1 id="title">CLICCA LA FACCIA!</h1>
+        <button onclick="startGame()">GIOCA</button>
     </div>
 
-    <img src="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCADIAXADASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDBAIEAwUFBAQAAAF9AQIDAAQRBIRBhUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZnaGlqc3R1dnd4eXqGhciMkic3R1dnd4eXqCg4SFhoeiiYqSkjLp68mP8h0fEQACAgADBAcFBAQABfL/2gAMAwEAAhEDEQA/APf6KKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigD/2Q==" id="target" alt="Pasta">
+    <img src="https://m.media-amazon.com/images/I/41OshSExO3L.jpg" id="target" alt="Pasta">
 
     <script>
         const target = document.getElementById('target');
         const scoreEl = document.getElementById('score');
         const timerEl = document.getElementById('timer');
         const overlay = document.getElementById('overlay');
-        const startBtn = document.getElementById('start-btn');
-        const msg = document.getElementById('msg');
+        const title = document.getElementById('title');
 
         let score = 0;
         let timeLeft = 30;
         let gameActive = false;
-        let timerInterval;
-        let moveInterval;
 
         function move() {
-            if(!gameActive) return;
-            const x = Math.random() * (window.innerWidth - 120);
-            const y = Math.random() * (window.innerHeight - 150) + 100;
-            target.style.left = `${x}px`;
-            target.style.top = `${y}px`;
+            const x = Math.random() * (window.innerWidth - 150);
+            const y = Math.random() * (window.innerHeight - 200) + 100;
+            target.style.left = x + 'px';
+            target.style.top = y + 'px';
         }
 
         function startGame() {
@@ -134,50 +111,33 @@
             gameActive = true;
             scoreEl.innerText = score;
             timerEl.innerText = timeLeft;
-            
             overlay.classList.add('hidden');
             target.style.display = 'block';
-            
             move();
-            
-            // Timer del gioco
-            timerInterval = setInterval(() => {
+
+            const timer = setInterval(() => {
                 timeLeft--;
                 timerEl.innerText = timeLeft;
-                if(timeLeft <= 0) endGame();
+                if(timeLeft <= 0) {
+                    clearInterval(timer);
+                    endGame();
+                }
             }, 1000);
-
-            // Movimento automatico ogni secondo (se non lo becchi)
-            moveInterval = setInterval(move, 1000);
         }
 
         function endGame() {
             gameActive = false;
-            clearInterval(timerInterval);
-            clearInterval(moveInterval);
             target.style.display = 'none';
             overlay.classList.remove('hidden');
-            msg.innerText = `Tempo scaduto! Score: ${score}`;
-            startBtn.innerText = "RIPROVA";
+            title.innerText = "FINITO! PUNTI: " + score;
         }
 
         target.addEventListener('mousedown', () => {
             if(!gameActive) return;
             score++;
             scoreEl.innerText = score;
-            
-            // Effetto rimbalzo quando colpito
-            target.style.transform = "scale(1.3)";
-            setTimeout(() => target.style.transform = "scale(1)", 100);
-            
             move();
-            
-            // Resetta l'intervallo di movimento automatico per non farlo saltare subito dopo il click
-            clearInterval(moveInterval);
-            moveInterval = setInterval(move, Math.max(500, 1000 - (score * 20))); 
         });
-
-        startBtn.addEventListener('click', startGame);
     </script>
 </body>
 </html>
